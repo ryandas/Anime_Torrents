@@ -1,4 +1,4 @@
-import requests, random, csv, os, sys, re, operator,time
+import requests, random, argparse,csv, os, sys, re, time
 from natsort import natsorted
 from bs4 import BeautifulSoup
 
@@ -12,7 +12,7 @@ def random_ua(fname):
 
 def source(url):
     headers = {"User-Agent":random_ua(headerfile)}
-    r=requests.get(url,headers=headers,timeout=2)
+    r=requests.get(url,headers=headers,timeout=5)
     if r.status_code == 200:
         return r.text
     if r.status_code == 503:
@@ -37,7 +37,10 @@ def torrent_links(page):
     soup=BeautifulSoup(source(page), "html.parser")
     anchors = soup.findAll("a")
     title = soup.findAll("h2",{"id":"title"})
-    episode_number = soup.findAll("td")[2].a.next_sibling.next_sibling.text.split()[1]
+    try:
+        episode_number = soup.findAll("td")[2].a.next_sibling.next_sibling.text.split()[1]
+    except:
+        episode_number = "-"
     #print(episode_number) # debug
     for anchor in anchors:
         if(anchor.text=="Torrent Download"):
@@ -53,17 +56,17 @@ def torrent_links(page):
                 return
             
 
-def link_finder(page):
+def link_finder(page,pattern):
     print(page)
     soup = BeautifulSoup(source(page), "html.parser")
     links = soup.findAll("div",{"class":"link"})
-    pattern1 = re.compile("\[Erai-raws\]")
+    #pattern1 = re.compile("\[Erai-raws\]")
     #pattern1 = re.compile("\[HorribleSubs\]")
     pattern2 = re.compile("\[1080p\]")
     pattern3 = re.compile("~")
     pattern4 = re.compile("\[Unofficial Batch\]")
     for link in links:
-        if(re.search(pattern1, link.text)):
+        if(re.search(pattern, link.text)):
             if(re.search(pattern2,link.text)):
                 if(re.search(pattern3, link.text)):
                     #print(link.a["href"],file=lfile) # debug
@@ -73,21 +76,31 @@ def link_finder(page):
                 else:
                     torrent_links(link.a["href"])
 
-def pages_finder(anime_details,page_number):
+def pages_finder(anime_details,page_number,pattern):
     url="{address}?page={i}".format(address=anime_details["address"],i=page_number)
     #print(url) # debug
     soup = BeautifulSoup(source(url), "html.parser")
     date = soup.find("div",{"class":"home_list_datesep"})
     if date.text != "-":
 
-        link_finder(url)
-        pages_finder(anime_details,page_number+1)
+        link_finder(url,pattern)
+        pages_finder(anime_details,page_number+1,pattern)
     else:
         return
 
 if __name__ == "__main__":
-    search_query='+'.join(sys.argv[1:])
-    url = "{address}/search?q={query}".format(address=base_address,query=search_query)
+    
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-p","--provider",dest="provider",help="<Name of Channel>")
+    parser.add_argument("-s","--search",dest="search",help="<Name of Anime>")
+    args = parser.parse_args()
+    if(args.provider):
+        pattern = re.compile("\["+args.provider+"\]")
+    else:
+        pattern = re.compile("\[Erai-raws\]")
+
+    search_query=re.sub(" ","+",args.search)
+    url = "{address}search?q={query}".format(address=base_address,query=search_query)
     print(url)
 
     soup = BeautifulSoup(source(url), "html.parser")
@@ -131,7 +144,7 @@ if __name__ == "__main__":
     d_write = csv.DictWriter(download,fieldnames=fieldnames)
     special_write = csv.DictWriter(special,fieldnames=fieldnames)
 
-    pages_finder(anime_details,1)
+    pages_finder(anime_details,1,pattern)
 
     main_csv.close()
     download.close()
