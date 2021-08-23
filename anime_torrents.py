@@ -21,7 +21,6 @@ def source(url):
     else:
         print(r.status_code) 
 
-
 def sort_csv(filename,rev):
     csvfile=open(filename,'r')
     reader = csv.reader(csvfile)
@@ -60,18 +59,16 @@ def link_finder(page,pattern):
     print(page)
     soup = BeautifulSoup(source(page), "html.parser")
     links = soup.findAll("div",{"class":"link"})
-    #pattern1 = re.compile("\[Erai-raws\]")
-    #pattern1 = re.compile("\[HorribleSubs\]")
-    pattern2 = re.compile("\[1080p\]")
-    pattern3 = re.compile("~")
-    pattern4 = re.compile("\[Unofficial Batch\]")
+    res = re.compile("\[1080p\]")
+    anomaly1 = re.compile("~")
+    anomaly2 = re.compile("\[Unofficial Batch\]")
     for link in links:
         if(re.search(pattern, link.text)):
-            if(re.search(pattern2,link.text)):
-                if(re.search(pattern3, link.text)):
+            if(re.search(res,link.text)):
+                if(re.search(anomaly1, link.text)):
                     #print(link.a["href"],file=lfile) # debug
                     continue
-                elif(re.search(pattern4,link.text)):
+                elif(re.search(anomaly2,link.text)):
                     continue
                 else:
                     torrent_links(link.a["href"])
