@@ -1,4 +1,4 @@
-import requests, random, argparse,csv, os, sys, re, time
+import requests, random, argparse,csv, os, sys, re, time, sqlite3
 from natsort import natsorted
 from bs4 import BeautifulSoup
 
@@ -59,14 +59,19 @@ def link_finder(page,pattern):
     print(page)
     soup = BeautifulSoup(source(page), "html.parser")
     links = soup.findAll("div",{"class":"link"})
-    res = re.compile("\[1080p\]")
+    res = re.compile("1080p")
+    #res=re.compile("1080p")
     anomaly1 = re.compile("~")
     anomaly2 = re.compile("\[Unofficial Batch\]")
     for link in links:
+        if(pattern==0):
+            pattern=re.compile("\[Erai-raws\]")
         if(re.search(pattern, link.text)):
+            #print(link.a["href"])
             if(re.search(res,link.text)):
+                #print(link.a["href"])
                 if(re.search(anomaly1, link.text)):
-                    #print(link.a["href"],file=lfile) # debug
+                       #print(link.a["href"],file=lfile) # debug
                     continue
                 elif(re.search(anomaly2,link.text)):
                     continue
@@ -95,6 +100,7 @@ if __name__ == "__main__":
         pattern = re.compile("\["+args.provider+"\]")
     else:
         pattern = re.compile("\[Erai-raws\]")
+        #pattern = 0
 
     search_query=re.sub(" ","+",args.search)
     url = "{address}search?q={query}".format(address=base_address,query=search_query)
